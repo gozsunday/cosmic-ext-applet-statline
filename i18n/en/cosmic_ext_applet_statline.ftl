@@ -1,0 +1,9 @@
+app-title = Cosmic Ext Applet Statline
+app-comment = Minimal system monitor applet for the COSMIC Desktop
+app-keywords =
+about = About
+view = View
+welcome = Welcome to COSMIC! ✨
+page-id = Page { $num }
+git-description = Git commit {$hash} on {$date}
+example-row = Example Row
