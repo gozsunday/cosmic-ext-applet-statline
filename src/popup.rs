@@ -31,7 +31,7 @@ const POPUP_CONTENT_WIDTH: f32 = 468.0;
 /// stays compact. A bare scrollable is Shrink and would grow the window, so
 /// it is wrapped in `container.max_height` (dialog precedent). Main is never
 /// scrollable.
-const SUBPAGE_SCROLL_MAX_HEIGHT: f32 = 640.0;
+const SUBPAGE_SCROLL_MAX_HEIGHT: f32 = 720.0;
 
 /// Wide popup autosize id (separate from libcosmic's 360px popup id).
 static WIDE_AUTOSIZE_ID: LazyLock<cosmic::iced::id::Id> =
