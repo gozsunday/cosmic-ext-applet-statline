@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 
+// Each module groups one applet concern (see file docs for details).
 mod app;
 mod config;
 mod i18n;
+mod popup;
+mod style;
 
 fn main() -> cosmic::iced::Result {
     // Get the system's preferred languages.

@@ -20,6 +20,7 @@ features = ["fluent-system", "desktop-requester"]
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"
+rev = "ef490df50b0a05a21c494c3f75737581bf0b39d9"
 # See https://github.com/pop-os/libcosmic/blob/master/Cargo.toml for available features.
 features = [
     # Applet support
@@ -29,6 +30,8 @@ features = [
     "dbus-config",
     # Support creating additional application windows.
     "multi-window",
+    # About page widget (used for popup About page).
+    "about",
     # Uses tokio as the executor for the runtime
     "tokio",
     # Add Wayland support to winit
