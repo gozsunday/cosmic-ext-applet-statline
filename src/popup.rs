@@ -8,9 +8,13 @@
 //! accent (not album tint).
 
 use cosmic::app::Core;
-use cosmic::iced::{Alignment, Color, Length};
-use cosmic::widget::{self, button, icon, text, Row};
+use cosmic::applet::cosmic_panel_config::PanelAnchor;
+use cosmic::iced::alignment::{Horizontal, Vertical};
+use cosmic::iced::{Alignment, Color, Length, Limits, Shadow};
+use cosmic::widget::{self, autosize::autosize, button, icon, text, Row};
 use cosmic::Element;
+
+use std::sync::LazyLock;
 
 use crate::app::{Message, PopupPage};
 use crate::fl;
@@ -28,6 +32,10 @@ const POPUP_CONTENT_WIDTH: f32 = 468.0;
 /// it is wrapped in `container.max_height` (dialog precedent). Main is never
 /// scrollable.
 const SUBPAGE_SCROLL_MAX_HEIGHT: f32 = 640.0;
+
+/// Wide popup autosize id (separate from libcosmic's 360px popup id).
+static WIDE_AUTOSIZE_ID: LazyLock<cosmic::iced::id::Id> =
+    LazyLock::new(|| cosmic::iced::id::Id::new("statline-popup-autosize"));
 
 // ---------------------------------------------------------------------------
 // Popup entry
@@ -100,8 +108,69 @@ pub fn popup<'a>(
         .padding(cosmic::iced::Padding::from(padding))
         .into();
 
-    // Standard COSMIC popup container handles positioning and blur.
-    core.applet.popup_container(sized).into()
+    // Wide popup shell (not libcosmic's 360px `popup_container`).
+    popup_container_wide(core, sized)
+}
+
+// ---------------------------------------------------------------------------
+// Wide popup shell
+// ---------------------------------------------------------------------------
+
+/// Popup background wrapper without libcosmic's 360px width clamp.
+///
+/// `core.applet.popup_container` hardcodes autosize limits to exactly 360px,
+/// so a 468px request shrinks back. This mirrors its look (rounded base bg,
+/// 1px divider border, default shadow, anchor alignment) but measures with
+/// wide limits matching the positioner (468..480 x 1..880).
+fn popup_container_wide<'a>(
+    core: &Core,
+    content: Element<'a, Message>,
+) -> Element<'a, Message> {
+    // Align the shell toward the panel edge the applet sits on.
+    let (vertical_align, horizontal_align) = match core.applet.anchor {
+        // Vertical panels center vertically, stick to their side.
+        PanelAnchor::Left => (Vertical::Center, Horizontal::Left),
+        PanelAnchor::Right => (Vertical::Center, Horizontal::Right),
+        // Horizontal panels stick to top/bottom, center horizontally.
+        PanelAnchor::Top => (Vertical::Top, Horizontal::Center),
+        PanelAnchor::Bottom => (Vertical::Bottom, Horizontal::Center),
+    };
+
+    // Inner background box with the COSMIC popup look.
+    let background = widget::container(widget::container(content).style(|theme| {
+        // Base surface color for the current transparency mode.
+        let cosmic = theme.cosmic();
+        let corners = cosmic.corner_radii;
+        let bg = cosmic.background(theme.transparent).base;
+        // Rounded card with divider border and default shadow.
+        cosmic::iced::widget::container::Style {
+            text_color: Some(cosmic.background(theme.transparent).on.into()),
+            background: Some(Color::from(bg).into()),
+            border: cosmic::iced::Border {
+                radius: corners.radius_m.into(),
+                width: 1.0,
+                color: cosmic.background(theme.transparent).divider.into(),
+            },
+            shadow: Shadow::default(),
+            icon_color: Some(cosmic.background(theme.transparent).on.into()),
+            snap: true,
+        }
+    }))
+    // Shrink to content height, aligned toward the panel.
+    .height(Length::Shrink)
+    .align_x(horizontal_align)
+    .align_y(vertical_align);
+
+    // Autosize notifies the shell of the measured size with wide limits.
+    autosize(background, WIDE_AUTOSIZE_ID.clone())
+        .limits(
+            Limits::NONE
+                .min_height(1.0)
+                .min_width(POPUP_CONTENT_WIDTH)
+                .max_width(480.0)
+                .max_height(880.0),
+        )
+        .into()
 }
 
 // ---------------------------------------------------------------------------
@@ -133,12 +202,12 @@ fn main_header(core: &Core, accent: Color) -> Element<'_, Message> {
     // Icon size follows the panel's suggested icon size.
     let size = core.applet.suggested_size(true);
 
-    // Left source pill: external-link icon + monitor name, faint accent bg.
+    // Left source pill: bundled external-link glyph plus monitor name.
     let pill_content = Row::new()
         .spacing(6)
         .align_y(Alignment::Center)
-        // Small link icon marks this as opening another app.
-        .push(icon::from_name("external-link-symbolic").size(12).icon())
+        // Bundled libcosmic glyph (not a theme lookup) so it always renders.
+        .push(widget::icon(widget::button::link::icon()).size(12))
         .push(
             // 13px Medium matches playbar's header pill text.
             text("COSMIC System Monitor")
